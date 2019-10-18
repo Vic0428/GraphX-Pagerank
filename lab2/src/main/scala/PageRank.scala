@@ -21,41 +21,43 @@ object PageRank {
         val sc = new SparkContext(conf)
         // Construct graph from "web-Google.txt"
         val wikiFile = "/home/lxiang_stu3/Vic/GraphX-Pagerank/data/wiki-Vote.txt"
-        val wikiGraph = GraphLoader.edgeListFile(sc, googleFile).mapEdges(e => e.attr.toDouble).cache()
-        // First associate the degree with each vertex
-        // Second, set the weight on the edges based on the degree
-        // Finally, set the vertex attibutes to (initialPR, delta=0)
-        val pageRankGraph: Graph[(Double, Double), Double] = wikiGraph.outerJoinVertices(graph.outDegrees) {(vid, vdata, deg) => deg.getOrElse(0)
-                            }.mapTriplets( e => 1.0 / e.srcAttr
-                            ).mapVertices((id, attr) => (0.0, 0.0)
-                            ).cache() 
+        val wikiGraph = GraphLoader.edgeListFile(sc, wikiFile).mapEdges(e => e.attr.toDouble).cache()
+        // Initialize the PageRank graph with each edge attribute having
+        // weight 1/outDegree and each vertex with attribute 1.0 (pageRank)
+        var rankGraph: Graph[Double, Double] = wikiGraph.outerJoinVertices(wikiGraph.outDegrees) { 
+                        (vid, vdata, deg) => deg.getOrElse(0) 
+                    } .mapTriplets(
+                        e => 1.0 / e.srcAttr, TripletFields.Src 
+                    ).mapVertices {
+                         (id, attr) => 1.0 
+                    }
+        // Start iteraion
+        var iteration = 0
+        // Maximum iterations
+        val numIter = 150
+        // previous Rank Graph
+        var prevRankGraph: Graph[Double, Double] = null
+        // reset probability
         val resetProb = 0.15
-        val tol = 0.001
-        // Define the vertex functions
-    def vertexProgram(id: VertexId, attr: (Double, Double), msgSum: Double): (Double, Double) = {
-      val (oldPR, lastDelta) = attr
-      val newPR = oldPR + (1.0 - resetProb) * msgSum
-      (newPR, newPR - oldPR)
-    }
-        // Define send message program
-        def sendMessage(edge: EdgeTriplet[(Double, Double), Double]) = {
-            if (edge.srcAttr._2 > tol) {
-                Iterator((edge.dstId, edge.srcAttr._2 * edge.attr))
-            } else {
-                Iterator.empty
-            }
+        // Start iterating
+        while (iteration < numIter) {
+            rankGraph.cache()
+            // get rank update value
+            val rankUpdates = rankGraph.aggregateMessages[Double](
+                ctx => ctx.sendToDst(ctx.srcAttr * ctx.attr), _ + _, TripletFields.Src)
+            prevRankGraph = rankGraph
+            // Update rank graph 
+            rankGraph = rankGraph.outerJoinVertices(rankUpdates) {
+            (id, oldRank, msgSumOpt) => resetProb + (1.0 - resetProb) * msgSumOpt.getOrElse(0.0)
+            }.cache()
+            // Move to next iteration
+            rankGraph.edges.foreachPartition(x => {})
+            println(s"PageRank finished iteration $iteration.")
+            prevRankGraph.vertices.unpersist(false)
+            prevRankGraph.edges.unpersist(false)
+            iteration += 1
         }
-
-        def mergeMessage(a: Double, b: Double): Double = {
-            a + b
-        }
-
-        // The initial message received by all vertices in pageRank
-        val initMessage = resetProb / (1.0 - resetProb)
-        val vp = (id: VertexId, attr: (Double, Double), msgSum: Double) => vertexProgram(id, attr, msgSum)
-        val ranks = Pregel(pageRankGraph, initMessage, activeDirection = EdgeDirection.Out)(
-            vp, sendMessage, mergeMessage).mapVertices((vid, attr) => attr._1)
-
+        rankGraph.vertices.sortBy(v => -v._2).take(20).foreach(println)
         sc.stop()
   }
 }
