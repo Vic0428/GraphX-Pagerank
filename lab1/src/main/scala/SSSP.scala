@@ -8,24 +8,22 @@
  */
 import org.apache.spark._
 import org.apache.spark.graphx._
-import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
 
 object SSSP {
   def main(args: Array[String]) {
         // Define appName and master
-        val appName = "My app"
+        val appName = "SSSP"
+        val master = "local[40]"
         // Create new spark context
         val conf = new SparkConf().setAppName(appName)
         val sc = new SparkContext(conf)
-        // Construct graph from "web-Google.txt"
-        val googleFile = "/home/lxiang_stu3/Vic/GraphX-Pagerank/data/web-Google.txt"
-        val googleGraph = GraphLoader.edgeListFile(sc, googleFile).mapEdges(e => e.attr.toDouble).cache()
+        // Construct graph from "wiki-Vote.txt"
+        val wikiFile = "/home/lxiang_stu3/Vic/GraphX-Pagerank/data/wiki-Vote.txt"
+        val wikiGraph = GraphLoader.edgeListFile(sc, wikiFile).mapEdges(e => e.attr.toDouble).cache()
         // The ultimate source
         val sourceId: VertexId = 42
         // Initialize the graph so that all vertices expect the root have distance infinity
-        val initGraph = googleGraph.mapVertices((id, _) => 
+        val initGraph = wikiGraph.mapVertices((id, _) => 
                             if (id == sourceId) 0.0 else Double.PositiveInfinity)
         // Single source shortest path
         val sssp = initGraph.pregel(Double.PositiveInfinity) (

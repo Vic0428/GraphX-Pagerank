@@ -18,7 +18,7 @@ object PageRank {
         // Create new spark context
         val conf = new SparkConf().setAppName(appName).setMaster(master)
         val sc = new SparkContext(conf)
-        // Construct graph from "web-Google.txt"
+        // Construct graph from "wiki-Vote.txt"
         val wikiFile = "/home/lxiang_stu3/Vic/GraphX-Pagerank/data/wiki-Vote.txt"
         val wikiGraph = GraphLoader.edgeListFile(sc, wikiFile).mapEdges(e => e.attr.toDouble).cache()
         // Initialize the PageRank graph with each edge attribute having
