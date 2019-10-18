@@ -1,4 +1,4 @@
-name := "SSSP"
+name := "PageRank"
 
 version := "1.0"
 

@@ -8,16 +8,15 @@
  */
 import org.apache.spark._
 import org.apache.spark.graphx._
-import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
 
 object PageRank {
   def main(args: Array[String]) {
         // Define appName and master
-        val appName = "My app"
+        val appName = "PageRank"
+        // val master = "spark://10.10.10.1:7070"
+        val master = "local[40]"
         // Create new spark context
-        val conf = new SparkConf().setAppName(appName)
+        val conf = new SparkConf().setAppName(appName).setMaster(master)
         val sc = new SparkContext(conf)
         // Construct graph from "web-Google.txt"
         val wikiFile = "/home/lxiang_stu3/Vic/GraphX-Pagerank/data/wiki-Vote.txt"
@@ -29,8 +28,9 @@ object PageRank {
                     } .mapTriplets(
                         e => 1.0 / e.srcAttr, TripletFields.Src 
                     ).mapVertices {
-                         (id, attr) => 1.0 
+                         (id, attr) => 1.0
                     }
+        
         // Start iteraion
         var iteration = 0
         // Maximum iterations
@@ -57,7 +57,12 @@ object PageRank {
             prevRankGraph.edges.unpersist(false)
             iteration += 1
         }
-        rankGraph.vertices.sortBy(v => -v._2).take(20).foreach(println)
+        // Print top20 IDs
+        rankGraph.vertices.sortBy(
+                pair => -pair._2
+            ).map{
+                case (id, attr) => id
+            }.take(20).foreach(println)
         sc.stop()
   }
 }
