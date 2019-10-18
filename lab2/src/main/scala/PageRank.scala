@@ -30,7 +30,6 @@ object PageRank {
                     ).mapVertices {
                          (id, attr) => 1.0
                     }
-        
         // Start iteraion
         var iteration = 0
         // Maximum iterations

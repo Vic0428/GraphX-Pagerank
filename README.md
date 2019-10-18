@@ -120,3 +120,20 @@ Finally,
 
 <img src="README.assets/image-20191017093055636.png" alt="image-20191017093055636" style="zoom:50%;" />
 
+## Usage
+
+For Single Source Shortest Path on `wikiGraph` 
+
+```
+cd lab1
+./lab1.sh
+```
+
+For PageRank on `wikiGraph`
+
+```
+cd lab2
+./lab2.sh
+```
+
+You may need to change `master` information to either run on `local` or `Spark cluster`. 
